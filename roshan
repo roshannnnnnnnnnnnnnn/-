@@ -1,0 +1,1061 @@
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tetris Game - Kunwar Roshan</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #87ceeb;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #ffffff;
+    }
+
+    .container {
+        width: 95%;
+        max-width: 850px;
+        background: #1e293b;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.35);
+        text-align: center;
+    }
+
+    h1 {
+        margin: 0 0 5px;
+        font-size: 36px;
+    }
+
+    .student {
+        color: #cbd5e1;
+        margin-bottom: 20px;
+    }
+
+    .game-area {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 25px;
+        flex-wrap: wrap;
+    }
+
+    canvas {
+        background: #020617;
+        border: 4px solid #475569;
+        border-radius: 10px;
+    }
+
+    #game {
+        width: 300px;
+        height: 600px;
+    }
+
+    .panel {
+        width: 220px;
+        text-align: left;
+    }
+
+    .box {
+        background: #334155;
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+    }
+
+    .box h2 {
+        margin-top: 0;
+        font-size: 20px;
+    }
+
+    .stat {
+        display: flex;
+        justify-content: space-between;
+        margin: 10px 0;
+    }
+
+    #next {
+        display: block;
+        width: 120px;
+        height: 120px;
+        margin: auto;
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        border: none;
+        border-radius: 8px;
+        background: #2563eb;
+        color: white;
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #3b82f6;
+    }
+
+    .mobile-controls {
+        margin-top: 20px;
+        display: none;
+    }
+
+    .mobile-controls button {
+        width: 70px;
+        margin: 4px;
+    }
+
+    .message {
+        margin-top: 15px;
+        color: #facc15;
+        font-weight: bold;
+    }
+
+    @media (max-width: 700px) {
+        #game {
+            width: 270px;
+            height: 540px;
+        }
+
+        .panel {
+            width: 270px;
+        }
+
+        .mobile-controls {
+            display: block;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🎮 TETRIS</h1>
+
+    <div class="student">
+        Kunwar Roshan | Student ID: 202602203
+    </div>
+
+    <div class="game-area">
+
+        <canvas id="game" width="300" height="600"></canvas>
+
+        <div class="panel">
+
+            <div class="box">
+                <h2>📊 Score</h2>
+
+                <div class="stat">
+                    <span>Score</span>
+                    <strong id="score">0</strong>
+                </div>
+
+                <div class="stat">
+                    <span>Lines</span>
+                    <strong id="lines">0</strong>
+                </div>
+
+                <div class="stat">
+                    <span>Level</span>
+                    <strong id="level">1</strong>
+                </div>
+
+                <div class="stat">
+                    <span>High Score</span>
+                    <strong id="highScore">0</strong>
+                </div>
+            </div>
+
+            <div class="box">
+                <h2>➡️ Next</h2>
+                <canvas id="next" width="120" height="120"></canvas>
+            </div>
+
+            <div class="box">
+                <h2>⌨️ Controls</h2>
+                <p>← → Move</p>
+                <p>↑ Rotate</p>
+                <p>↓ Move Down</p>
+                <p>SPACE Hard Drop</p>
+                <p>P Pause</p>
+                <p>R Restart</p>
+            </div>
+
+            <button onclick="pauseGame()">⏸ Pause</button>
+            <button onclick="restartGame()">🔄 Restart</button>
+
+        </div>
+    </div>
+
+    <div class="mobile-controls">
+        <button onclick="moveLeft()">⬅️</button>
+        <button onclick="rotatePiece()">🔄</button>
+        <button onclick="moveRight()">➡️</button>
+        <br>
+        <button onclick="moveDown()">⬇️</button>
+        <button onclick="hardDrop()">⏬</button>
+    </div>
+
+    <div class="message" id="message"></div>
+
+</div>
+
+<script>
+
+/* =========================
+   TETRIS SETTINGS
+========================= */
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const nextCanvas = document.getElementById("next");
+const nextCtx = nextCanvas.getContext("2d");
+
+const COLS = 10;
+const ROWS = 20;
+const BLOCK = 30;
+
+const COLORS = [
+    "",
+    "#00ffff",
+    "#0000ff",
+    "#ff7f00",
+    "#ffff00",
+    "#00ff00",
+    "#8000ff",
+    "#ff0000"
+];
+
+
+/* =========================
+   TETRIS PIECES
+========================= */
+
+const PIECES = [
+
+    [
+        [1,1,1,1]
+    ],
+
+    [
+        [2,0,0],
+        [2,2,2]
+    ],
+
+    [
+        [0,0,3],
+        [3,3,3]
+    ],
+
+    [
+        [4,4],
+        [4,4]
+    ],
+
+    [
+        [0,5,5],
+        [5,5,0]
+    ],
+
+    [
+        [0,6,0],
+        [6,6,6]
+    ],
+
+    [
+        [7,7,0],
+        [0,7,7]
+    ]
+];
+
+
+/* =========================
+   GAME VARIABLES
+========================= */
+
+let board;
+let player;
+let nextPiece;
+
+let score = 0;
+let lines = 0;
+let level = 1;
+
+let highScore =
+    Number(localStorage.getItem("tetrisHighScore")) || 0;
+
+let paused = false;
+let gameOver = false;
+
+let dropCounter = 0;
+let lastTime = 0;
+
+let dropSpeed = 700;
+
+
+/* =========================
+   CREATE BOARD
+========================= */
+
+function createBoard() {
+
+    const newBoard = [];
+
+    for (let y = 0; y < ROWS; y++) {
+        newBoard.push(new Array(COLS).fill(0));
+    }
+
+    return newBoard;
+}
+
+
+/* =========================
+   CREATE RANDOM PIECE
+========================= */
+
+function createPiece() {
+
+    const index =
+        Math.floor(Math.random() * PIECES.length);
+
+    const shape =
+        PIECES[index].map(row => row.slice());
+
+    return {
+        matrix: shape,
+        x: Math.floor(
+            (COLS - shape[0].length) / 2
+        ),
+        y: 0
+    };
+}
+
+
+/* =========================
+   COLLISION CHECK
+========================= */
+
+function collision(piece) {
+
+    for (let y = 0; y < piece.matrix.length; y++) {
+
+        for (let x = 0; x < piece.matrix[y].length; x++) {
+
+            if (piece.matrix[y][x] === 0) {
+                continue;
+            }
+
+            const newX = piece.x + x;
+            const newY = piece.y + y;
+
+            if (newX < 0 || newX >= COLS) {
+                return true;
+            }
+
+            if (newY >= ROWS) {
+                return true;
+            }
+
+            if (
+                newY >= 0 &&
+                board[newY][newX] !== 0
+            ) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+
+/* =========================
+   MERGE PIECE
+========================= */
+
+function mergePiece() {
+
+    for (let y = 0; y < player.matrix.length; y++) {
+
+        for (let x = 0; x < player.matrix[y].length; x++) {
+
+            const value = player.matrix[y][x];
+
+            if (value !== 0) {
+
+                const boardY = player.y + y;
+                const boardX = player.x + x;
+
+                if (
+                    boardY >= 0 &&
+                    boardY < ROWS &&
+                    boardX >= 0 &&
+                    boardX < COLS
+                ) {
+                    board[boardY][boardX] = value;
+                }
+            }
+        }
+    }
+}
+
+
+/* =========================
+   CLEAR LINES
+========================= */
+
+function clearLines() {
+
+    let cleared = 0;
+
+    for (let y = ROWS - 1; y >= 0; y--) {
+
+        let complete = true;
+
+        for (let x = 0; x < COLS; x++) {
+
+            if (board[y][x] === 0) {
+                complete = false;
+                break;
+            }
+        }
+
+        if (complete) {
+
+            board.splice(y, 1);
+
+            board.unshift(
+                new Array(COLS).fill(0)
+            );
+
+            cleared++;
+
+            y++;
+        }
+    }
+
+    if (cleared > 0) {
+
+        lines += cleared;
+
+        const points = [
+            0,
+            100,
+            300,
+            500,
+            800
+        ];
+
+        score += points[cleared] * level;
+
+        level =
+            Math.floor(lines / 10) + 1;
+
+        dropSpeed =
+            Math.max(
+                100,
+                700 - (level - 1) * 60
+            );
+    }
+}
+
+
+/* =========================
+   LOCK PIECE
+========================= */
+
+function lockPiece() {
+
+    mergePiece();
+
+    clearLines();
+
+    player = nextPiece;
+    nextPiece = createPiece();
+
+    player.x =
+        Math.floor(
+            (COLS - player.matrix[0].length) / 2
+        );
+
+    player.y = 0;
+
+    if (collision(player)) {
+
+        gameOver = true;
+
+        document.getElementById("message")
+            .textContent =
+            "GAME OVER! Press R to restart.";
+    }
+
+    updateScore();
+}
+
+
+/* =========================
+   MOVE LEFT
+========================= */
+
+function moveLeft() {
+
+    if (paused || gameOver) return;
+
+    player.x--;
+
+    if (collision(player)) {
+        player.x++;
+    }
+}
+
+
+/* =========================
+   MOVE RIGHT
+========================= */
+
+function moveRight() {
+
+    if (paused || gameOver) return;
+
+    player.x++;
+
+    if (collision(player)) {
+        player.x--;
+    }
+}
+
+
+/* =========================
+   MOVE DOWN
+========================= */
+
+function moveDown() {
+
+    if (paused || gameOver) return;
+
+    player.y++;
+
+    if (collision(player)) {
+
+        player.y--;
+
+        lockPiece();
+    }
+
+    dropCounter = 0;
+}
+
+
+/* =========================
+   HARD DROP
+========================= */
+
+function hardDrop() {
+
+    if (paused || gameOver) return;
+
+    let distance = 0;
+
+    while (true) {
+
+        player.y++;
+
+        if (collision(player)) {
+
+            player.y--;
+
+            break;
+        }
+
+        distance++;
+    }
+
+    score += distance * 2;
+
+    lockPiece();
+
+    updateScore();
+
+    dropCounter = 0;
+}
+
+
+/* =========================
+   ROTATE
+========================= */
+
+function rotateMatrix(matrix) {
+
+    const result = [];
+
+    for (
+        let x = 0;
+        x < matrix[0].length;
+        x++
+    ) {
+
+        const row = [];
+
+        for (
+            let y = matrix.length - 1;
+            y >= 0;
+            y--
+        ) {
+
+            row.push(matrix[y][x]);
+        }
+
+        result.push(row);
+    }
+
+    return result;
+}
+
+
+function rotatePiece() {
+
+    if (paused || gameOver) return;
+
+    const oldMatrix = player.matrix;
+    const oldX = player.x;
+
+    player.matrix =
+        rotateMatrix(player.matrix);
+
+    if (collision(player)) {
+
+        player.x++;
+
+        if (collision(player)) {
+
+            player.x = oldX - 1;
+
+            if (collision(player)) {
+
+                player.matrix = oldMatrix;
+                player.x = oldX;
+            }
+        }
+    }
+}
+
+
+/* =========================
+   DRAW BLOCK
+========================= */
+
+function drawBlock(
+    context,
+    x,
+    y,
+    size,
+    color
+) {
+
+    context.fillStyle = color;
+
+    context.fillRect(
+        x,
+        y,
+        size,
+        size
+    );
+
+    context.strokeStyle =
+        "rgba(255,255,255,0.25)";
+
+    context.strokeRect(
+        x,
+        y,
+        size,
+        size
+    );
+
+    context.fillStyle =
+        "rgba(255,255,255,0.18)";
+
+    context.fillRect(
+        x + 3,
+        y + 3,
+        size - 6,
+        5
+    );
+}
+
+
+/* =========================
+   DRAW BOARD
+========================= */
+
+function drawBoard() {
+
+    ctx.fillStyle = "#020617";
+
+    ctx.fillRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    for (let y = 0; y < ROWS; y++) {
+
+        for (let x = 0; x < COLS; x++) {
+
+            const value = board[y][x];
+
+            if (value !== 0) {
+
+                drawBlock(
+                    ctx,
+                    x * BLOCK,
+                    y * BLOCK,
+                    BLOCK,
+                    COLORS[value]
+                );
+            }
+        }
+    }
+
+    /* Grid */
+
+    ctx.strokeStyle =
+        "rgba(255,255,255,0.05)";
+
+    for (let x = 0; x <= COLS; x++) {
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            x * BLOCK,
+            0
+        );
+
+        ctx.lineTo(
+            x * BLOCK,
+            canvas.height
+        );
+
+        ctx.stroke();
+    }
+
+    for (let y = 0; y <= ROWS; y++) {
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            0,
+            y * BLOCK
+        );
+
+        ctx.lineTo(
+            canvas.width,
+            y * BLOCK
+        );
+
+        ctx.stroke();
+    }
+}
+
+
+/* =========================
+   DRAW PLAYER
+========================= */
+
+function drawPlayer() {
+
+    if (!player) return;
+
+    for (
+        let y = 0;
+        y < player.matrix.length;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < player.matrix[y].length;
+            x++
+        ) {
+
+            const value =
+                player.matrix[y][x];
+
+            if (value !== 0) {
+
+                drawBlock(
+                    ctx,
+                    (player.x + x) * BLOCK,
+                    (player.y + y) * BLOCK,
+                    BLOCK,
+                    COLORS[value]
+                );
+            }
+        }
+    }
+}
+
+
+/* =========================
+   DRAW NEXT PIECE
+========================= */
+
+function drawNext() {
+
+    nextCtx.fillStyle = "#020617";
+
+    nextCtx.fillRect(
+        0,
+        0,
+        nextCanvas.width,
+        nextCanvas.height
+    );
+
+    if (!nextPiece) return;
+
+    const size = 24;
+
+    const width =
+        nextPiece.matrix[0].length * size;
+
+    const height =
+        nextPiece.matrix.length * size;
+
+    const startX =
+        (120 - width) / 2;
+
+    const startY =
+        (120 - height) / 2;
+
+    for (
+        let y = 0;
+        y < nextPiece.matrix.length;
+        y++
+    ) {
+
+        for (
+            let x = 0;
+            x < nextPiece.matrix[y].length;
+            x++
+        ) {
+
+            const value =
+                nextPiece.matrix[y][x];
+
+            if (value !== 0) {
+
+                drawBlock(
+                    nextCtx,
+                    startX + x * size,
+                    startY + y * size,
+                    size,
+                    COLORS[value]
+                );
+            }
+        }
+    }
+}
+
+
+/* =========================
+   DRAW GAME
+========================= */
+
+function draw() {
+
+    drawBoard();
+    drawPlayer();
+    drawNext();
+}
+
+
+/* =========================
+   UPDATE SCORE
+========================= */
+
+function updateScore() {
+
+    if (score > highScore) {
+
+        highScore = score;
+
+        localStorage.setItem(
+            "tetrisHighScore",
+            highScore
+        );
+    }
+
+    document.getElementById("score")
+        .textContent = score;
+
+    document.getElementById("lines")
+        .textContent = lines;
+
+    document.getElementById("level")
+        .textContent = level;
+
+    document.getElementById("highScore")
+        .textContent = highScore;
+}
+
+
+/* =========================
+   PAUSE
+========================= */
+
+function pauseGame() {
+
+    if (gameOver) return;
+
+    paused = !paused;
+
+    document.getElementById("message")
+        .textContent =
+        paused ? "GAME PAUSED" : "";
+}
+
+
+/* =========================
+   RESTART
+========================= */
+
+function restartGame() {
+
+    board = createBoard();
+
+    player = createPiece();
+
+    nextPiece = createPiece();
+
+    score = 0;
+    lines = 0;
+    level = 1;
+
+    dropSpeed = 700;
+
+    paused = false;
+    gameOver = false;
+
+    dropCounter = 0;
+
+    document.getElementById("message")
+        .textContent = "";
+
+    updateScore();
+
+    draw();
+}
+
+
+/* =========================
+   KEYBOARD
+========================= */
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key === "ArrowLeft" ||
+            event.key === "ArrowRight" ||
+            event.key === "ArrowDown" ||
+            event.key === "ArrowUp" ||
+            event.key === " "
+        ) {
+            event.preventDefault();
+        }
+
+        if (event.key === "ArrowLeft") {
+            moveLeft();
+        }
+
+        else if (event.key === "ArrowRight") {
+            moveRight();
+        }
+
+        else if (event.key === "ArrowDown") {
+            moveDown();
+        }
+
+        else if (event.key === "ArrowUp") {
+            rotatePiece();
+        }
+
+        else if (event.key === " ") {
+            hardDrop();
+        }
+
+        else if (
+            event.key === "p" ||
+            event.key === "P"
+        ) {
+            pauseGame();
+        }
+
+        else if (
+            event.key === "r" ||
+            event.key === "R"
+        ) {
+            restartGame();
+        }
+    }
+);
+
+
+/* =========================
+   GAME LOOP
+========================= */
+
+function gameLoop(time) {
+
+    const delta =
+        time - lastTime;
+
+    lastTime = time;
+
+    if (!paused && !gameOver) {
+
+        dropCounter += delta;
+
+        if (dropCounter > dropSpeed) {
+
+            moveDown();
+        }
+    }
+
+    draw();
+
+    requestAnimationFrame(gameLoop);
+}
+
+
+/* =========================
+   START
+========================= */
+
+restartGame();
+
+requestAnimationFrame(gameLoop);
+
+</script>
+
+</body>
+</html>
+```
